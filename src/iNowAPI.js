@@ -9,7 +9,9 @@ const iNowAPI = function(){
         RawAPI.Options = {
             PathMap: {
                 root: "https://sis-jacksonvillecity.chalkableinformationnow.com/InformationNow/",
+
                 login: "Login.aspx",
+
                 demographic: "ParentPortal/Sti.Home.UI.Web/Student/Demographic.aspx"
             }
         };
@@ -20,12 +22,15 @@ const iNowAPI = function(){
         RawAPI.Login = {
             load: async function(){
                 await RawAPI.PuppeteerPage.goto(RawAPI.Options.PathMap.root + RawAPI.Options.PathMap.login);
+
+                await RawAPI.PuppeteerPage.waitForNavigation();
             },
             submit: async function(){
                 await RawAPI.PuppeteerPage.click("#btnLogin");
 
                 await RawAPI.PuppeteerPage.waitForNavigation();
             },
+
             getUsername: async function(){
                 return await RawAPI.PuppeteerPage.$eval("#txtUsername", function(element){
                     return element.value;
@@ -36,6 +41,12 @@ const iNowAPI = function(){
                     element.value;
                 });
             },
+            getError: async function(){
+                return await RawAPI.PuppeteerPage.$eval(".LiError.error", function(element){
+                    element.innerText;
+                });
+            },
+
             setUsername: async function(username){
                 await RawAPI.PuppeteerPage.$eval("#txtUsername", function(element, username){
                     element.value = username;
@@ -59,6 +70,7 @@ const iNowAPI = function(){
                 //Changing the year reloads the entire page, so we don't need any specials options for waitForNavigation
                 await RawAPI.PuppeteerPage.waitForNavigation();
             },
+
             get: async function(){
                 return await RawAPI.PuppeteerPage.$eval("#ctl00_ddStudentAcadSession", function(element){
                     const allOptions = [];
@@ -74,6 +86,7 @@ const iNowAPI = function(){
                     return allOptions;
                 });
             },
+
             set: async function(yearId){
                 await RawAPI.PuppeteerPage.$eval("#ctl00_ddStudentAcadSession", function(element, yearId) {
                     element.value = yearId;
@@ -94,6 +107,7 @@ const iNowAPI = function(){
                     waitUntil: "networkidle"
                 });
             },
+
             get: async function(){
                 return await RawAPI.PuppeteerPage.$eval("#ctl00_ContentPlaceHolder1_ddGradingPeriodList", function(element){
                     const allOptions = [];
@@ -109,6 +123,7 @@ const iNowAPI = function(){
                     return allOptions;
                 });
             },
+
             set: async function(nineWeeksId){
                 await RawAPI.PuppeteerPage.$eval("#ctl00_ContentPlaceHolder1_ddGradingPeriodList", function(element, nineWeeksId) {
                     element.value = nineWeeksId;
@@ -119,7 +134,10 @@ const iNowAPI = function(){
         RawAPI.Demographic = {
             load: async function(){
                 await RawAPI.PuppeteerPage.goto(RawAPI.Options.PathMap.root + RawAPI.Options.PathMap.demographic);
+
+                await RawAPI.PuppeteerPage.waitForNavigation();
             },
+
             get: async function(){
                 return await RawAPI.PuppeteerPage.$eval("#MasterChildContent", function(element) {
                     let finalDemographicsObject = {};
