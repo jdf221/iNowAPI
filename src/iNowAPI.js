@@ -12,7 +12,9 @@ const iNowAPI = function(){
 
                 login: "Login.aspx",
 
-                demographic: "ParentPortal/Sti.Home.UI.Web/Student/Demographic.aspx"
+                demographic: "ParentPortal/Sti.Home.UI.Web/Student/Demographic.aspx",
+
+                grades: "ParentPortal/Sti.Home.UI.Web/Student/Grades.aspx"
             }
         };
 
@@ -22,8 +24,6 @@ const iNowAPI = function(){
         RawAPI.Login = {
             load: async function(){
                 await RawAPI.PuppeteerPage.goto(RawAPI.Options.PathMap.root + RawAPI.Options.PathMap.login);
-
-                await RawAPI.PuppeteerPage.waitForNavigation();
             },
             submit: async function(){
                 await RawAPI.PuppeteerPage.click("#btnLogin");
@@ -134,8 +134,6 @@ const iNowAPI = function(){
         RawAPI.Demographic = {
             load: async function(){
                 await RawAPI.PuppeteerPage.goto(RawAPI.Options.PathMap.root + RawAPI.Options.PathMap.demographic);
-
-                await RawAPI.PuppeteerPage.waitForNavigation();
             },
 
             get: async function(){
@@ -207,6 +205,36 @@ const iNowAPI = function(){
                     return finalDemographicsObject;
                 });
             }
+        };
+
+        RawAPI.Classes = {
+            load: async function(){
+                await RawAPI.PuppeteerPage.goto(RawAPI.Options.PathMap.root + RawAPI.Options.PathMap.grades);
+            },
+
+            get: async function(){
+                return await RawAPI.PuppeteerPage.$eval("#ctl00_ContentPlaceHolder1_grdGrades", function(element){
+                    const finalClassesArray = [];
+
+                    [].forEach.call(element.children[0].children, function(grade, index){
+                        if(index > 0){
+                            finalClassesArray.push({
+                                id: /onclick="window\.location = 'ActivityDetail\.aspx\?x=(.*)';"/.exec(grade.children[4].innerHTML)[1],
+                                name: grade.children[0].innerHTML,
+                                teacher: grade.children[1].innerHTML,
+                                period: grade.children[2].innerHTML,
+                                grade: grade.children[3].children[0].innerHTML.slice(0, -3)
+                            });
+                        }
+                    });
+
+                    return finalClassesArray;
+                });
+            }
+        };
+
+        RawAPI.Assignments = {
+
         };
 
         return RawAPI;

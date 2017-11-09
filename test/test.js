@@ -21,15 +21,21 @@ const Puppeteer = require("puppeteer");
     //console.log(await RawAPI.Year.get());
     await RawAPI.Year.set("17");
     await RawAPI.Year.submit();
+    */
 
+    /*
     //console.log(await RawAPI.NineWeeks.get());
     await RawAPI.NineWeeks.set("49");
     await RawAPI.NineWeeks.submit();
     */
 
+    /*
     await RawAPI.Demographic.load();
     console.log(await RawAPI.Demographic.get());
+    */
 
+    await RawAPI.Classes.load();
+    console.log(await RawAPI.Classes.get());
 
     //await Browser.close();
 })();
