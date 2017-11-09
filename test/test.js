@@ -1,12 +1,9 @@
+const credentials = require("./credentials.js");
+
 const iNowAPI = require("../");
 const Puppeteer = require("puppeteer");
 
-let password = "";
-(function(){
-   password = "";
-}());
-
-(async () => {
+(async function() {
     const Browser = await Puppeteer.launch({
         headless: false
     });
@@ -16,8 +13,8 @@ let password = "";
     const RawAPI = new iNowAPI.Objects.RawAPI(Page);
 
     await RawAPI.Login.load();
-    await RawAPI.Login.setUsername("");
-    await RawAPI.Login.setPassword(password);
+    await RawAPI.Login.setUsername(credentials.username);
+    await RawAPI.Login.setPassword(credentials.password);
     await RawAPI.Login.submit();
 
     /*
