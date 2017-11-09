@@ -14,7 +14,8 @@ const iNowAPI = function(){
 
                 demographic: "ParentPortal/Sti.Home.UI.Web/Student/Demographic.aspx",
 
-                grades: "ParentPortal/Sti.Home.UI.Web/Student/Grades.aspx"
+                grades: "ParentPortal/Sti.Home.UI.Web/Student/Grades.aspx",
+                assignments: "ParentPortal/Sti.Home.UI.Web/Student/ActivityDetail.aspx?x=%s"
             }
         };
 
@@ -223,7 +224,7 @@ const iNowAPI = function(){
                                 name: grade.children[0].innerHTML,
                                 teacher: grade.children[1].innerHTML,
                                 period: grade.children[2].innerHTML,
-                                grade: grade.children[3].children[0].innerHTML.slice(0, -3)
+                                grade: (grade.children[3].children[0].innerHTML.slice(0, -3)) || false
                             });
                         }
                     });
@@ -234,7 +235,37 @@ const iNowAPI = function(){
         };
 
         RawAPI.Assignments = {
+            load: async function(classId){
+                await RawAPI.PuppeteerPage.goto(RawAPI.Options.PathMap.root + RawAPI.Options.PathMap.assignments.replace("%s", classId));
+            },
 
+            get: async function(){
+                return await RawAPI.PuppeteerPage.$eval("#ctl00_ContentPlaceHolder1_grdActivities", function(element) {
+                    const finalAssignmentsArray = [];
+
+                    [].forEach.call(element.querySelectorAll(".gridRow, .gridAlternatingRow"), function (assignment, index) {
+                        if (index > 0) {
+                            const splitScoreObject = assignment.children[8].innerHTML.split("/");
+
+                            finalAssignmentsArray.push({
+                                timestamp: (new Date(assignment.children[1].innerHTML)).getTime(),
+                                category: assignment.children[2].innerHTML,
+                                name: assignment.children[3].innerHTML,
+                                graded: (assignment.children[4].innerHTML === "Y"),
+                                drp: (assignment.children[5].innerHTML === "Y"),
+                                inc: (assignment.children[6].innerHTML === "Y"),
+                                late: (assignment.children[7].innerHTML === "Y"),
+                                score: (splitScoreObject.length > 1) ? splitScoreObject[0] : false,
+                                maxScore: (splitScoreObject.length > 1) ? splitScoreObject[1].split(" ")[0] : false,
+                                letterGrade: (splitScoreObject.length > 1) ? splitScoreObject[1].substr(-1) : false,
+                                comment: assignment.nextElementSibling.querySelector("span").innerHTML
+                            });
+                        }
+                    });
+
+                    return finalAssignmentsArray;
+                });
+            }
         };
 
         return RawAPI;
