@@ -1,0 +1,11 @@
+{
+  "name": "inowapi",
+  "version": "1.0.0",
+  "description": "",
+  "main": "src/iNowAPI.js",
+  "author": "Jared (jdf2)",
+  "license": "MIT",
+  "dependencies": {
+    "puppeteer": "^0.12.0"
+  }
+}
