@@ -300,6 +300,35 @@ const iNowAPI = function(){
             }
         };
 
+        RawAPI.PeriodAttendance = {
+            load: async function(){
+                await RawAPI.PuppeteerPage.goto(RawAPI.Options.PathMap.root + RawAPI.Options.PathMap.periodAttendance);
+            },
+
+            get: async function(){
+                return await RawAPI.PuppeteerPage.$eval("#ctl00_ContentPlaceHolder1_grdAttendance", function(element) {
+                    const finalPeriodsArray = [];
+
+                    [].forEach.call(element.children[0].children, function (period, index) {
+                        if (index > 0) {
+                            finalPeriodsArray.push({
+                                timestamp: (new Date(period.children[0].innerHTML)).getTime(),
+                                period: period.children[1].innerHTML,
+                                course: period.children[2].innerHTML,
+                                level: period.children[3].innerHTML,
+                                reason: period.children[4].innerHTML,
+                                excused: (period.children[5].innerHTML === "E"),
+                                note: period.children[6].innerHTML,
+                            });
+                        }
+                    });
+
+                    return finalPeriodsArray;
+                });
+            }
+        };
+
+
         RawAPI.CheckInOuts = {
             load: async function(){
                 await RawAPI.PuppeteerPage.goto(RawAPI.Options.PathMap.root + RawAPI.Options.PathMap.checkInCheckOut);

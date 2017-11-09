@@ -44,8 +44,15 @@ const Puppeteer = require("puppeteer");
     console.log(await RawAPI.Assignments.get());
     */
 
+    /*
     await RawAPI.Attendance.load();
     console.log(await RawAPI.Attendance.get());
+    */
+
+    /*
+    await RawAPI.PeriodAttendance.load();
+    console.log(await RawAPI.PeriodAttendance.get());
+    */
 
     /*
     await RawAPI.CheckInOuts.load();
