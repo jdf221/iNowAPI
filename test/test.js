@@ -39,9 +39,18 @@ const Puppeteer = require("puppeteer");
     console.log(await RawAPI.Classes.get());
     */
 
+    /*
     await RawAPI.Assignments.load("5A74613641787446547041595266314B524D356A6D686C355872343D2D55464A4A545546535756394A524430784E5445324E695A48556B46455355354858314246556B6C50524430334E435A445431565355305539515735686447397465513D3D");
     console.log(await RawAPI.Assignments.get());
+    */
 
+    await RawAPI.Attendance.load();
+    console.log(await RawAPI.Attendance.get());
+
+    /*
+    await RawAPI.CheckInOuts.load();
+    console.log(await RawAPI.CheckInOuts.get());
+    */
 
     await Browser.close();
 })();

@@ -15,7 +15,11 @@ const iNowAPI = function(){
                 demographic: "ParentPortal/Sti.Home.UI.Web/Student/Demographic.aspx",
 
                 grades: "ParentPortal/Sti.Home.UI.Web/Student/Grades.aspx",
-                assignments: "ParentPortal/Sti.Home.UI.Web/Student/ActivityDetail.aspx?x=%s"
+                assignments: "ParentPortal/Sti.Home.UI.Web/Student/ActivityDetail.aspx?x=%s",
+
+                attendance: "ParentPortal/Sti.Home.UI.Web/Student/Attendance.aspx",
+                periodAttendance: "ParentPortal/Sti.Home.UI.Web/Student/PeriodAttendance.aspx",
+                checkInCheckOut: "ParentPortal/Sti.Home.UI.Web/Student/CheckInCheckOut.aspx"
             }
         };
 
@@ -264,6 +268,62 @@ const iNowAPI = function(){
                     });
 
                     return finalAssignmentsArray;
+                });
+            }
+        };
+
+        RawAPI.Attendance = {
+            load: async function(){
+                await RawAPI.PuppeteerPage.goto(RawAPI.Options.PathMap.root + RawAPI.Options.PathMap.attendance);
+            },
+
+            get: async function(){
+                return await RawAPI.PuppeteerPage.$eval("#ctl00_ContentPlaceHolder1_grdAttendance", function(element) {
+                    const finalDaysArray = [];
+
+                    [].forEach.call(element.children[0].children, function (day, index) {
+                        if (index > 0) {
+                            finalDaysArray.push({
+                                timestamp: (new Date(day.querySelector("a").innerHTML)).getTime(),
+                                term: day.children[1].innerHTML,
+                                periods: day.children[2].innerHTML.split(","),
+                                level: day.children[3].innerHTML,
+                                reason: day.children[4].innerHTML,
+                                excused: (day.children[5].innerHTML === "E"),
+                                note: day.children[6].innerHTML
+                            });
+                        }
+                    });
+
+                    return finalDaysArray;
+                });
+            }
+        };
+
+        RawAPI.CheckInOuts = {
+            load: async function(){
+                await RawAPI.PuppeteerPage.goto(RawAPI.Options.PathMap.root + RawAPI.Options.PathMap.checkInCheckOut);
+            },
+
+            get: async function(){
+                return await RawAPI.PuppeteerPage.$eval("#ctl00_ContentPlaceHolder1_grdAttendance", function(element) {
+                    const finalTimesArray = [];
+
+                    [].forEach.call(element.children[0].children, function (time, index) {
+                        if (index > 0) {
+                            finalTimesArray.push({
+                                timestamp: (new Date(time.children[1].innerHTML)).getTime(),
+                                type: time.children[0].innerHTML.toLowerCase(),
+                                time: time.children[2].innerHTML, //Possibly convert this to a timestamp based on the date provided
+                                period: time.children[3].innerHTML,
+                                excused: (time.children[4].innerHTML === "E"),
+                                reason: time.children[5].innerHTML,
+                                note: time.children[6].innerHTML
+                            });
+                        }
+                    });
+
+                    return finalTimesArray;
                 });
             }
         };
