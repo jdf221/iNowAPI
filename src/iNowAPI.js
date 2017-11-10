@@ -244,31 +244,36 @@ const iNowAPI = function() {
             },
 
             get: async function() {
-                return await RawAPI.PuppeteerPage.$eval("#ctl00_ContentPlaceHolder1_grdActivities", function(element) {
-                    const finalAssignmentsArray = [];
+                if(await RawAPI.PuppeteerPage.$("#ctl00_ContentPlaceHolder1_grdActivities")) {
+                    return await RawAPI.PuppeteerPage.$eval("#ctl00_ContentPlaceHolder1_grdActivities", function(element) {
+                        const finalAssignmentsArray = [];
 
-                    [].forEach.call(element.querySelectorAll(".gridRow, .gridAlternatingRow"), function(assignment, index) {
-                        if(index > 0) {
-                            const splitScoreObject = assignment.children[8].innerHTML.split("/");
+                        [].forEach.call(element.querySelectorAll(".gridRow, .gridAlternatingRow"), function(assignment, index) {
+                            if(index > 0) {
+                                const splitScoreObject = assignment.children[8].innerHTML.split("/");
 
-                            finalAssignmentsArray.push({
-                                timestamp: (new Date(assignment.children[1].innerHTML)).getTime(),
-                                category: assignment.children[2].innerHTML,
-                                name: assignment.children[3].innerHTML,
-                                graded: (assignment.children[4].innerHTML === "Y"),
-                                drp: (assignment.children[5].innerHTML === "Y"),
-                                inc: (assignment.children[6].innerHTML === "Y"),
-                                late: (assignment.children[7].innerHTML === "Y"),
-                                score: (splitScoreObject.length > 1) ? splitScoreObject[0] : false,
-                                maxScore: (splitScoreObject.length > 1) ? splitScoreObject[1].split(" ")[0] : false,
-                                letterGrade: (splitScoreObject.length > 1) ? splitScoreObject[1].substr(-1) : false,
-                                comment: assignment.nextElementSibling.querySelector("span").innerHTML
-                            });
-                        }
+                                finalAssignmentsArray.push({
+                                    timestamp: (new Date(assignment.children[1].innerHTML)).getTime(),
+                                    category: assignment.children[2].innerHTML,
+                                    name: assignment.children[3].innerHTML,
+                                    graded: (assignment.children[4].innerHTML === "Y"),
+                                    drp: (assignment.children[5].innerHTML === "Y"),
+                                    inc: (assignment.children[6].innerHTML === "Y"),
+                                    late: (assignment.children[7].innerHTML === "Y"),
+                                    score: (splitScoreObject.length > 1) ? splitScoreObject[0] : false,
+                                    maxScore: (splitScoreObject.length > 1) ? splitScoreObject[1].split(" ")[0] : false,
+                                    letterGrade: (splitScoreObject.length > 1) ? splitScoreObject[1].substr(-1) : false,
+                                    comment: assignment.nextElementSibling.querySelector("span").innerHTML
+                                });
+                            }
+                        });
+
+                        return finalAssignmentsArray;
                     });
-
-                    return finalAssignmentsArray;
-                });
+                }
+                else {
+                    return [];
+                }
             }
         };
 
@@ -327,7 +332,6 @@ const iNowAPI = function() {
                 });
             }
         };
-
 
         RawAPI.CheckInOuts = {
             load: async function() {
