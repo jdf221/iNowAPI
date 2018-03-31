@@ -3,19 +3,42 @@ const credentials = require("./credentials.js");
 const iNowAPI = require("../");
 const Puppeteer = require("puppeteer");
 
-(async function() {
-    const Browser = await Puppeteer.launch({
+(async function () {
+
+    const Session = await iNowAPI.newSession({
         headless: false
     });
-    const Page = await Browser.newPage();
 
+    try {
+        //console.log(await Session.getYears());
 
-    const RawAPI = new iNowAPI.Objects.RawAPI(Page);
+        console.log("Login", await Session.login(credentials.username, credentials.password));
+
+        console.log("Years", await Session.getYears());
+        console.log("NineWeeks", await Session.getNineWeeks("29"));
+
+        let classesArray = await Session.getClasses(undefined, "75");
+        console.log("Classes", classesArray);
+
+        console.log(classesArray[2].name + " Assignments", await Session.getClassAssignments(classesArray[2].id));
+    }
+    catch (error) {
+        console.log("Error:", error);
+    }
+
+    /*const RawAPI = await iNowAPI.newRawAPI({
+        headless: false
+    });
 
     await RawAPI.Login.load();
     await RawAPI.Login.setUsername(credentials.username);
     await RawAPI.Login.setPassword(credentials.password);
     await RawAPI.Login.submit();
+
+
+    await RawAPI.Classes.load();
+    console.log(await RawAPI.Classes.get());
+*/
 
     /*
     //console.log(await RawAPI.Year.get());
@@ -59,5 +82,5 @@ const Puppeteer = require("puppeteer");
     console.log(await RawAPI.CheckInOuts.get());
     */
 
-    await Browser.close();
+    //await Browser.close();
 })();

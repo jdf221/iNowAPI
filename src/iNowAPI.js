@@ -1,9 +1,9 @@
-const iNowAPI = function() {
+const Puppeteer = require("puppeteer");
+
+const iNowAPI = function () {
     const iNowAPI = this;
 
-    iNowAPI.Objects = {};
-
-    iNowAPI.Objects.RawAPI = function(PuppeteerPage) {
+    iNowAPI.RawAPI = function (PuppeteerPage) {
         const RawAPI = this;
 
         RawAPI.Options = {
@@ -25,62 +25,84 @@ const iNowAPI = function() {
 
         RawAPI.PuppeteerPage = PuppeteerPage;
 
+        RawAPI.Cookies = {
+            fresh: async function () {
+                await RawAPI.PuppeteerPage.deleteCookie(...(await RawAPI.PuppeteerPage.cookies(RawAPI.Options.PathMap.root)))
+            }
+        };
 
         RawAPI.Login = {
-            load: async function() {
+            load: async function () {
                 await RawAPI.PuppeteerPage.goto(RawAPI.Options.PathMap.root + RawAPI.Options.PathMap.login);
             },
-            submit: async function() {
+            submit: async function () {
                 await RawAPI.PuppeteerPage.click("#btnLogin");
 
                 await RawAPI.PuppeteerPage.waitForNavigation();
             },
+            status: async function () {
+                if (RawAPI.PuppeteerPage.url().includes(RawAPI.Options.PathMap.login)) {
+                    return false;
+                }
+                else {
+                    return true;
+                }
+            },
 
-            getUsername: async function() {
-                return await RawAPI.PuppeteerPage.$eval("#txtUsername", function(element) {
+            getUsername: async function () {
+                return await RawAPI.PuppeteerPage.$eval("#txtUsername", function (element) {
                     return element.value;
                 });
             },
-            getPassword: async function() {
-                return await RawAPI.PuppeteerPage.$eval("#txtPassword", function(element) {
-                    element.value;
+            getPassword: async function () {
+                return await RawAPI.PuppeteerPage.$eval("#txtPassword", function (element) {
+                    return element.value;
                 });
             },
-            getError: async function() {
-                return await RawAPI.PuppeteerPage.$eval(".LiError.error", function(element) {
-                    element.innerText;
+            getError: async function () {
+                return await RawAPI.PuppeteerPage.$eval(".LiError.error", function (element) {
+                    return element.innerText;
                 });
             },
 
-            setUsername: async function(username) {
-                await RawAPI.PuppeteerPage.$eval("#txtUsername", function(element, username) {
+            setUsername: async function (username) {
+                await RawAPI.PuppeteerPage.$eval("#txtUsername", function (element, username) {
                     element.value = username;
                 }, username);
             },
-            setPassword: async function(password) {
-                await RawAPI.PuppeteerPage.$eval("#txtPassword", function(element, password) {
+            setPassword: async function (password) {
+                await RawAPI.PuppeteerPage.$eval("#txtPassword", function (element, password) {
                     element.value = password;
                 }, password);
             }
         };
 
         RawAPI.Year = {
-            submit: async function() {
-                await RawAPI.PuppeteerPage.$eval("#ctl00_ddStudentAcadSession", function(element) {
-                    var evt = document.createEvent("HTMLEvents");
-                    evt.initEvent("change", false, true);
-                    element.dispatchEvent(evt);
+            submit: async function () {
+                let willNavigate = await RawAPI.PuppeteerPage.$eval("#ctl00_ddStudentAcadSession", function (element) {
+                    if (element.iNowAPI_hasChanged) {
+                        let evt = document.createEvent("HTMLEvents");
+                        evt.initEvent("change", false, true);
+                        element.dispatchEvent(evt);
+
+                        return true;
+                    }
+                    else {
+                        return false;
+                    }
                 });
 
-                //Changing the year reloads the entire page, so we don't need any specials options for waitForNavigation
-                await RawAPI.PuppeteerPage.waitForNavigation();
+                if (willNavigate) {
+                    //Changing the year reloads the entire page, so we don't need any specials options for waitForNavigation
+                    await RawAPI.PuppeteerPage.waitForNavigation();
+                }
             },
 
-            get: async function() {
-                return await RawAPI.PuppeteerPage.$eval("#ctl00_ddStudentAcadSession", function(element) {
+            get: async function () {
+                return await RawAPI.PuppeteerPage.$eval("#ctl00_ddStudentAcadSession", function (element) {
                     const allOptions = [];
 
-                    [].forEach.call(element.options, function(option, index) {
+                    [].forEach.call(element.options, function (option, index) {
                         allOptions.push({
                             id: option.value,
                             name: option.innerHTML,
@@ -92,32 +114,51 @@ const iNowAPI = function() {
                 });
             },
 
-            set: async function(yearId) {
-                await RawAPI.PuppeteerPage.$eval("#ctl00_ddStudentAcadSession", function(element, yearId) {
+            set: async function (yearId) {
+                await RawAPI.PuppeteerPage.$eval("#ctl00_ddStudentAcadSession", function (element, yearId) {
+                    if (element.value !== yearId) {
+                        element.iNowAPI_hasChanged = true;
+                    }
+
                     element.value = yearId;
                 }, yearId);
             }
         };
 
         RawAPI.NineWeeks = {
-            submit: async function() {
-                await RawAPI.PuppeteerPage.$eval("#ctl00_ContentPlaceHolder1_ddGradingPeriodList", function(element) {
-                    var evt = document.createEvent("HTMLEvents");
-                    evt.initEvent("change", false, true);
-                    element.dispatchEvent(evt);
-                });
-
-                //Changing the nine weeks doesn't reload the entire page. So we need to be sure to wait until networkidle.
-                await RawAPI.PuppeteerPage.waitForNavigation({
-                    waitUntil: "networkidle"
-                });
+            load: async function () {
+                await RawAPI.PuppeteerPage.goto(RawAPI.Options.PathMap.root + RawAPI.Options.PathMap.grades);
             },
 
-            get: async function() {
-                return await RawAPI.PuppeteerPage.$eval("#ctl00_ContentPlaceHolder1_ddGradingPeriodList", function(element) {
+            submit: async function () {
+                let willNavigate = await RawAPI.PuppeteerPage.$eval("#ctl00_ContentPlaceHolder1_ddGradingPeriodList", function (element) {
+                    if (element.iNowAPI_hasChanged) {
+                        let evt = document.createEvent("HTMLEvents");
+                        evt.initEvent("change", false, true);
+                        element.dispatchEvent(evt);
+
+                        return true;
+                    }
+                    else {
+                        return false;
+                    }
+                });
+
+                if (willNavigate) {
+                    await RawAPI.PuppeteerPage.waitForSelector("#ctl00_progressBar", {
+                        visible: true
+                    });
+                    await RawAPI.PuppeteerPage.waitForSelector("#ctl00_progressBar", {
+                        hidden: true
+                    });
+                }
+            },
+
+            get: async function () {
+                return await RawAPI.PuppeteerPage.$eval("#ctl00_ContentPlaceHolder1_ddGradingPeriodList", function (element) {
                     const allOptions = [];
 
-                    [].forEach.call(element.options, function(option, index) {
+                    [].forEach.call(element.options, function (option, index) {
                         allOptions.push({
                             id: option.value,
                             name: option.innerHTML,
@@ -129,24 +170,28 @@ const iNowAPI = function() {
                 });
             },
 
-            set: async function(nineWeeksId) {
-                await RawAPI.PuppeteerPage.$eval("#ctl00_ContentPlaceHolder1_ddGradingPeriodList", function(element, nineWeeksId) {
+            set: async function (nineWeeksId) {
+                await RawAPI.PuppeteerPage.$eval("#ctl00_ContentPlaceHolder1_ddGradingPeriodList", function (element, nineWeeksId) {
+                    if (element.value !== nineWeeksId) {
+                        element.iNowAPI_hasChanged = true;
+                    }
+
                     element.value = nineWeeksId;
                 }, nineWeeksId);
             }
         };
 
         RawAPI.Demographic = {
-            load: async function() {
+            load: async function () {
                 await RawAPI.PuppeteerPage.goto(RawAPI.Options.PathMap.root + RawAPI.Options.PathMap.demographic);
             },
 
-            get: async function() {
-                return await RawAPI.PuppeteerPage.$eval("#MasterChildContent", function(element) {
+            get: async function () {
+                return await RawAPI.PuppeteerPage.$eval("#MasterChildContent", function (element) {
                     let finalDemographicsObject = {};
                     let demographicSections = [];
 
-                    element.querySelectorAll(".DetailBand").forEach(function(section) {
+                    element.querySelectorAll(".DetailBand").forEach(function (section) {
                         demographicSections.push(section.querySelectorAll("li"));
                     });
 
@@ -213,16 +258,16 @@ const iNowAPI = function() {
         };
 
         RawAPI.Classes = {
-            load: async function() {
+            load: async function () {
                 await RawAPI.PuppeteerPage.goto(RawAPI.Options.PathMap.root + RawAPI.Options.PathMap.grades);
             },
 
-            get: async function() {
-                return await RawAPI.PuppeteerPage.$eval("#ctl00_ContentPlaceHolder1_grdGrades", function(element) {
+            get: async function () {
+                return await RawAPI.PuppeteerPage.$eval("#ctl00_ContentPlaceHolder1_grdGrades", function (element) {
                     const finalClassesArray = [];
 
-                    [].forEach.call(element.children[0].children, function(grade, index) {
-                        if(index > 0) {
+                    [].forEach.call(element.children[0].children, function (grade, index) {
+                        if (index > 0) {
                             finalClassesArray.push({
                                 id: /onclick="window\.location = 'ActivityDetail\.aspx\?x=(.*)';"/.exec(grade.children[4].innerHTML)[1],
                                 name: grade.children[0].innerHTML,
@@ -239,17 +284,17 @@ const iNowAPI = function() {
         };
 
         RawAPI.Assignments = {
-            load: async function(classId) {
+            load: async function (classId) {
                 await RawAPI.PuppeteerPage.goto(RawAPI.Options.PathMap.root + RawAPI.Options.PathMap.assignments.replace("%s", classId));
             },
 
-            get: async function() {
-                if(await RawAPI.PuppeteerPage.$("#ctl00_ContentPlaceHolder1_grdActivities")) {
-                    return await RawAPI.PuppeteerPage.$eval("#ctl00_ContentPlaceHolder1_grdActivities", function(element) {
+            get: async function () {
+                if (await RawAPI.PuppeteerPage.$("#ctl00_ContentPlaceHolder1_grdActivities")) {
+                    return await RawAPI.PuppeteerPage.$eval("#ctl00_ContentPlaceHolder1_grdActivities", function (element) {
                         const finalAssignmentsArray = [];
 
-                        [].forEach.call(element.querySelectorAll(".gridRow, .gridAlternatingRow"), function(assignment, index) {
-                            if(index > 0) {
+                        [].forEach.call(element.querySelectorAll(".gridRow, .gridAlternatingRow"), function (assignment, index) {
+                            if (index > 0) {
                                 const splitScoreObject = assignment.children[8].innerHTML.split("/");
 
                                 finalAssignmentsArray.push({
@@ -260,8 +305,8 @@ const iNowAPI = function() {
                                     drp: (assignment.children[5].innerHTML === "Y"),
                                     inc: (assignment.children[6].innerHTML === "Y"),
                                     late: (assignment.children[7].innerHTML === "Y"),
-                                    score: (splitScoreObject.length > 1) ? splitScoreObject[0] : false,
-                                    maxScore: (splitScoreObject.length > 1) ? splitScoreObject[1].split(" ")[0] : false,
+                                    score: (splitScoreObject.length > 1) ? parseFloat(splitScoreObject[0]) : false,
+                                    maxScore: (splitScoreObject.length > 1) ? parseFloat(splitScoreObject[1].split(" ")[0]) : false,
                                     letterGrade: (splitScoreObject.length > 1) ? splitScoreObject[1].substr(-1) : false,
                                     comment: assignment.nextElementSibling.querySelector("span").innerHTML
                                 });
@@ -278,16 +323,16 @@ const iNowAPI = function() {
         };
 
         RawAPI.Attendance = {
-            load: async function() {
+            load: async function () {
                 await RawAPI.PuppeteerPage.goto(RawAPI.Options.PathMap.root + RawAPI.Options.PathMap.attendance);
             },
 
-            get: async function() {
-                return await RawAPI.PuppeteerPage.$eval("#ctl00_ContentPlaceHolder1_grdAttendance", function(element) {
+            get: async function () {
+                return await RawAPI.PuppeteerPage.$eval("#ctl00_ContentPlaceHolder1_grdAttendance", function (element) {
                     const finalDaysArray = [];
 
-                    [].forEach.call(element.children[0].children, function(day, index) {
-                        if(index > 0) {
+                    [].forEach.call(element.children[0].children, function (day, index) {
+                        if (index > 0) {
                             finalDaysArray.push({
                                 timestamp: (new Date(day.querySelector("a").innerHTML)).getTime(),
                                 term: day.children[1].innerHTML,
@@ -306,16 +351,16 @@ const iNowAPI = function() {
         };
 
         RawAPI.PeriodAttendance = {
-            load: async function() {
+            load: async function () {
                 await RawAPI.PuppeteerPage.goto(RawAPI.Options.PathMap.root + RawAPI.Options.PathMap.periodAttendance);
             },
 
-            get: async function() {
-                return await RawAPI.PuppeteerPage.$eval("#ctl00_ContentPlaceHolder1_grdAttendance", function(element) {
+            get: async function () {
+                return await RawAPI.PuppeteerPage.$eval("#ctl00_ContentPlaceHolder1_grdAttendance", function (element) {
                     const finalPeriodsArray = [];
 
-                    [].forEach.call(element.children[0].children, function(period, index) {
-                        if(index > 0) {
+                    [].forEach.call(element.children[0].children, function (period, index) {
+                        if (index > 0) {
                             finalPeriodsArray.push({
                                 timestamp: (new Date(period.children[0].innerHTML)).getTime(),
                                 period: period.children[1].innerHTML,
@@ -334,16 +379,16 @@ const iNowAPI = function() {
         };
 
         RawAPI.CheckInOuts = {
-            load: async function() {
+            load: async function () {
                 await RawAPI.PuppeteerPage.goto(RawAPI.Options.PathMap.root + RawAPI.Options.PathMap.checkInCheckOut);
             },
 
-            get: async function() {
-                return await RawAPI.PuppeteerPage.$eval("#ctl00_ContentPlaceHolder1_grdAttendance", function(element) {
+            get: async function () {
+                return await RawAPI.PuppeteerPage.$eval("#ctl00_ContentPlaceHolder1_grdAttendance", function (element) {
                     const finalTimesArray = [];
 
-                    [].forEach.call(element.children[0].children, function(time, index) {
-                        if(index > 0) {
+                    [].forEach.call(element.children[0].children, function (time, index) {
+                        if (index > 0) {
                             finalTimesArray.push({
                                 timestamp: (new Date(time.children[1].innerHTML)).getTime(),
                                 type: time.children[0].innerHTML.toLowerCase(),
@@ -362,6 +407,186 @@ const iNowAPI = function() {
         };
 
         return RawAPI;
+    };
+
+    iNowAPI.Session = function (RawPuppeteerPage) {
+        const Session = this;
+        Session._ = {
+            loginCheckedTimeout: 1800,
+            lastAutoLoginCheckTimestamp: 0
+        };
+
+        Session.RawAPI = new iNowAPI.RawAPI(RawPuppeteerPage);
+
+        Session.Util = {
+            throwIfNotLoggedIn: async function () {
+                if ((Session._.lastAutoLoginCheckTimestamp + Session._.loginCheckedTimeout) <= Date.now()) {
+                    Session._.lastAutoLoginCheckTimestamp = Date.now();
+
+                    if (!(await Session.isLoggedIn())) {
+                        throw {
+                            error: true,
+                            code: "notLoggedIn",
+                            message: "You must be logged in to do that"
+                        }
+                    }
+                }
+            }
+        };
+
+        Session.login = async function (username, password) {
+            try {
+                await Session.RawAPI.Cookies.fresh();
+
+                await Session.RawAPI.Login.load();
+
+                await Session.RawAPI.Login.setUsername(username);
+                await Session.RawAPI.Login.setPassword(password);
+
+                await Session.RawAPI.Login.submit();
+
+                if (await Session.RawAPI.Login.status()) {
+                    return true;
+                }
+                else {
+                    throw {
+                        error: true,
+                        code: "loginFailed",
+                        message: (await Session.RawAPI.Login.getError())
+                    };
+                }
+            }
+            catch (caughtError) {
+                if (caughtError && caughtError.code === "loginFailed") {
+                    throw caughtError;
+                }
+                else {
+                    throw {
+                        error: true,
+                        code: "loginFailed",
+                        message: "Unknown error",
+                        caughtError: caughtError
+                    };
+                }
+            }
+        };
+
+        Session.isLoggedIn = async function () {
+            const currentUrl = Session.RawAPI.PuppeteerPage.url();
+
+            if (currentUrl.includes(Session.RawAPI.Options.PathMap.grades)) {
+                await Session.RawAPI.PuppeteerPage.reload()
+            }
+            else {
+                await Session.RawAPI.Classes.load();
+            }
+
+            return (await Session.RawAPI.Login.status());
+        };
+
+
+        Session.getYears = async function () {
+            await Session.Util.throwIfNotLoggedIn();
+
+            try {
+                return await Session.RawAPI.Year.get();
+            }
+            catch (caughtError) {
+                throw {
+                    error: true,
+                    code: "getYearsFailed",
+                    message: "Unknown error",
+                    caughtError: caughtError
+                }
+            }
+        };
+
+        Session.getNineWeeks = async function (yearId) {
+            await Session.Util.throwIfNotLoggedIn();
+
+            try {
+                await Session.RawAPI.Year.set(yearId.toString());
+                await Session.RawAPI.Year.submit();
+
+                await Session.RawAPI.NineWeeks.load();
+
+                return await Session.RawAPI.NineWeeks.get()
+            }
+            catch (caughtError) {
+                throw {
+                    error: true,
+                    code: "getNineWeeksFailed",
+                    message: "Unknown error",
+                    caughtError: caughtError
+                }
+            }
+        };
+
+
+        Session.getClasses = async function (yearId, nineWeeksId) {
+            await Session.Util.throwIfNotLoggedIn();
+
+
+            try {
+                await Session.RawAPI.Classes.load();
+
+                if (typeof yearId !== "undefined") {
+                    await Session.RawAPI.Year.set(yearId.toString());
+                    await Session.RawAPI.Year.submit();
+                }
+                if (typeof nineWeeksId !== "undefined") {
+                    await Session.RawAPI.NineWeeks.set(nineWeeksId.toString());
+                    await Session.RawAPI.NineWeeks.submit();
+                }
+
+                return await Session.RawAPI.Classes.get()
+            }
+            catch (caughtError) {
+                throw {
+                    error: true,
+                    code: "getClassesFailed",
+                    message: "Unknown error",
+                    caughtError: caughtError
+                }
+            }
+        };
+
+
+        Session.getClassAssignments = async function (classId) {
+            await Session.Util.throwIfNotLoggedIn();
+
+            try {
+                await Session.RawAPI.Assignments.load(classId.toString());
+
+                return await Session.RawAPI.Assignments.get();
+            }
+            catch (caughtError) {
+                throw {
+                    error: true,
+                    code: "getClassAssignmentsFailed",
+                    message: "Unknown error",
+                    caughtError: caughtError
+                }
+            }
+        };
+
+        return Session;
+    };
+
+    iNowAPI.newRawAPI = async function (puppeteerOptions = {}) {
+        const Browser = await Puppeteer.launch(puppeteerOptions);
+
+        const Page = await Browser.newPage();
+
+        return new iNowAPI.RawAPI(Page);
+    };
+
+    iNowAPI.newSession = async function (puppeteerOptions = {}) {
+        const Browser = await Puppeteer.launch(puppeteerOptions);
+
+        const Page = await Browser.newPage();
+
+        return new iNowAPI.Session(Page);
     };
 
     return iNowAPI;
