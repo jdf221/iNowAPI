@@ -452,11 +452,29 @@ const iNowAPI = function () {
         };
 
         Session.setAuthCode = async function (authCode) {
-            await Session.RawAPI.Cookies.setAuthCode(authCode);
+            try {
+                return await Session.RawAPI.Cookies.setAuthCode(authCode);
+            } catch (caughtError) {
+                throw {
+                    error: true,
+                    code: "setAuthCodeFailed",
+                    message: "Unknown error",
+                    caughtError: caughtError
+                }
+            }
         };
 
         Session.getAuthCode = async function () {
-            return await Session.RawAPI.Cookies.getAuthCode();
+            try {
+                return await Session.RawAPI.Cookies.getAuthCode();
+            } catch (caughtError) {
+                throw {
+                    error: true,
+                    code: "getAuthCodeFailed",
+                    message: "Unknown error",
+                    caughtError: caughtError
+                }
+            }
         };
 
         Session.login = async function (username, password) {
@@ -680,7 +698,10 @@ const iNowAPI = function () {
 
         const Page = await Browser.newPage();
 
-        return new iNowAPI.RawAPI(Page);
+        const RawAPI = new iNowAPI.RawAPI(Page);
+        RawAPI.PuppeteerBrowser = Browser;
+
+        return RawAPI;
     };
 
     iNowAPI.newSession = async function (puppeteerOptions = {}) {
@@ -688,7 +709,10 @@ const iNowAPI = function () {
 
         const Page = await Browser.newPage();
 
-        return new iNowAPI.Session(Page);
+        const Session = new iNowAPI.Session(Page);
+        Session.RawAPI.PuppeteerBrowser = Browser;
+
+        return Session;
     };
 
     return iNowAPI;
