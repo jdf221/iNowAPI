@@ -195,13 +195,12 @@ const iNowAPI = function () {
                         demographicSections.push(section.querySelectorAll("li"));
                     });
 
-                    //TODO: Some of these I don't know what the possible values are, so I've had to just stick with a normal string. I would like to be able to turn some of them into a true/false value but what ever, can't until I know more.
                     finalDemographicsObject.PersonalInformation = {
                         name: demographicSections[0][0].children[1].innerText.trim(),
                         number: demographicSections[0][1].children[1].innerText.trim(),
                         altNumber: demographicSections[0][2].children[1].innerText.trim(),
                         dob: demographicSections[0][3].children[1].innerText.trim(),
-                        gender: demographicSections[0][4].children[1].innerText.trim(), //TODO: On the site this is "Gender-Generation". And has a dash after my gender, so I'm just keeping it with the dash til I know how other sites handle it
+                        gender: demographicSections[0][4].children[1].innerText.trim().split(" -")[0],
                         phone: demographicSections[0][5].children[1].innerText.trim(),
                         maritalStatus: demographicSections[0][6].children[1].innerText.trim(),
                         religion: demographicSections[0][7].children[1].innerText.trim(),
@@ -215,8 +214,8 @@ const iNowAPI = function () {
                         stateId: demographicSections[1][3].children[1].innerText.trim(),
                         ethnicity: demographicSections[1][4].children[1].innerText.trim(),
                         migrant: demographicSections[1][5].children[1].innerText.trim(),
-                        foreignExchange: demographicSections[1][6].children[1].innerText.trim(),
-                        immigrant: demographicSections[1][7].children[1].innerText.trim(),
+                        foreignExchange: demographicSections[1][6].children[1].innerText.trim() === "Yes",
+                        immigrant: demographicSections[1][7].children[1].innerText.trim() === "Yes",
                         birthCertificate: demographicSections[1][8].children[1].innerText.trim(),
                         birthCertificateVerification: demographicSections[1][9].children[1].innerText.trim(),
                         employer: demographicSections[1][10].children[1].innerText.trim()
@@ -249,7 +248,7 @@ const iNowAPI = function () {
                         language: demographicSections[5][0].children[1].innerText.trim(),
                         lep: demographicSections[5][1].children[1].innerText.trim(),
                         section504: demographicSections[5][2].children[1].innerText.trim(),
-                        homeless: demographicSections[5][3].children[1].innerText.trim()
+                        homeless: demographicSections[5][3].children[1].innerText.trim() === "Yes"
                     };
 
                     return finalDemographicsObject;
@@ -272,8 +271,8 @@ const iNowAPI = function () {
                                 id: /onclick="window\.location = 'ActivityDetail\.aspx\?x=(.*)';"/.exec(grade.children[4].innerHTML)[1],
                                 name: grade.children[0].innerHTML,
                                 teacher: grade.children[1].innerHTML,
-                                period: grade.children[2].innerHTML,
-                                grade: (grade.children[3].children[0].innerHTML.slice(0, -3)) || false
+                                period: parseInt(grade.children[2].innerHTML),
+                                grade: (parseInt(grade.children[3].children[0].innerHTML.slice(0, -3))) || false
                             });
                         }
                     });
@@ -336,7 +335,7 @@ const iNowAPI = function () {
                             finalDaysArray.push({
                                 timestamp: (new Date(day.querySelector("a").innerHTML)).getTime(),
                                 term: day.children[1].innerHTML,
-                                periods: day.children[2].innerHTML.split(","),
+                                periods: day.children[2].innerHTML.split(",").map(period => parseInt(period)),
                                 level: day.children[3].innerHTML,
                                 reason: day.children[4].innerHTML,
                                 excused: (day.children[5].innerHTML === "E"),
@@ -363,7 +362,7 @@ const iNowAPI = function () {
                         if (index > 0) {
                             finalPeriodsArray.push({
                                 timestamp: (new Date(period.children[0].innerHTML)).getTime(),
-                                period: period.children[1].innerHTML,
+                                period: parseInt(period.children[1].innerHTML),
                                 course: period.children[2].innerHTML,
                                 level: period.children[3].innerHTML,
                                 reason: period.children[4].innerHTML,
@@ -390,10 +389,9 @@ const iNowAPI = function () {
                     [].forEach.call(element.children[0].children, function (time, index) {
                         if (index > 0) {
                             finalTimesArray.push({
-                                timestamp: (new Date(time.children[1].innerHTML)).getTime(),
+                                timestamp: (new Date(time.children[1].innerHTML + " " + time.children[2].innerHTML)).getTime(),
                                 type: time.children[0].innerHTML.toLowerCase(),
-                                time: time.children[2].innerHTML, //Possibly convert this to a timestamp based on the date provided
-                                period: time.children[3].innerHTML,
+                                period: parseInt(time.children[3].innerHTML),
                                 excused: (time.children[4].innerHTML === "E"),
                                 reason: time.children[5].innerHTML,
                                 note: time.children[6].innerHTML
@@ -412,7 +410,7 @@ const iNowAPI = function () {
     iNowAPI.Session = function (RawPuppeteerPage) {
         const Session = this;
         Session._ = {
-            loginCheckedTimeout: 1800,
+            loginCheckedTimeout: 30 * 1000,
             lastAutoLoginCheckTimestamp: 0
         };
 
@@ -472,18 +470,26 @@ const iNowAPI = function () {
         };
 
         Session.isLoggedIn = async function () {
-            const currentUrl = Session.RawAPI.PuppeteerPage.url();
+            try {
+                const currentUrl = Session.RawAPI.PuppeteerPage.url();
 
-            if (currentUrl.includes(Session.RawAPI.Options.PathMap.grades)) {
-                await Session.RawAPI.PuppeteerPage.reload()
-            }
-            else {
-                await Session.RawAPI.Classes.load();
-            }
+                if (currentUrl.includes(Session.RawAPI.Options.PathMap.grades)) {
+                    await Session.RawAPI.PuppeteerPage.reload()
+                }
+                else {
+                    await Session.RawAPI.Classes.load();
+                }
 
-            return (await Session.RawAPI.Login.status());
+                return (await Session.RawAPI.Login.status());
+            } catch (caughtError) {
+                throw {
+                    error: true,
+                    code: "isLoggedInFailed",
+                    message: "Unknown error",
+                    caughtError: caughtError
+                }
+            }
         };
-
 
         Session.getYears = async function () {
             await Session.Util.throwIfNotLoggedIn();
@@ -522,10 +528,8 @@ const iNowAPI = function () {
             }
         };
 
-
         Session.getClasses = async function (yearId, nineWeeksId) {
             await Session.Util.throwIfNotLoggedIn();
-
 
             try {
                 await Session.RawAPI.Classes.load();
@@ -551,7 +555,6 @@ const iNowAPI = function () {
             }
         };
 
-
         Session.getClassAssignments = async function (classId) {
             await Session.Util.throwIfNotLoggedIn();
 
@@ -559,6 +562,78 @@ const iNowAPI = function () {
                 await Session.RawAPI.Assignments.load(classId.toString());
 
                 return await Session.RawAPI.Assignments.get();
+            }
+            catch (caughtError) {
+                throw {
+                    error: true,
+                    code: "getClassAssignmentsFailed",
+                    message: "Unknown error",
+                    caughtError: caughtError
+                }
+            }
+        };
+
+        Session.getDemographics = async function () {
+            await Session.Util.throwIfNotLoggedIn();
+
+            try {
+                await Session.RawAPI.Demographic.load();
+
+                return await Session.RawAPI.Demographic.get();
+            }
+            catch (caughtError) {
+                throw {
+                    error: true,
+                    code: "getClassAssignmentsFailed",
+                    message: "Unknown error",
+                    caughtError: caughtError
+                }
+            }
+        };
+
+        Session.getAttendance = async function () {
+            await Session.Util.throwIfNotLoggedIn();
+
+            try {
+                await Session.RawAPI.Attendance.load();
+
+                return await Session.RawAPI.Attendance.get();
+            }
+            catch (caughtError) {
+                throw {
+                    error: true,
+                    code: "getClassAssignmentsFailed",
+                    message: "Unknown error",
+                    caughtError: caughtError
+                }
+            }
+        };
+
+        Session.getPeriodAttendance = async function () {
+            await Session.Util.throwIfNotLoggedIn();
+
+            try {
+                await Session.RawAPI.PeriodAttendance.load();
+
+                return await Session.RawAPI.PeriodAttendance.get();
+            }
+            catch (caughtError) {
+                throw {
+                    error: true,
+                    code: "getClassAssignmentsFailed",
+                    message: "Unknown error",
+                    caughtError: caughtError
+                }
+            }
+        };
+
+        Session.getCheckInOuts = async function () {
+            await Session.Util.throwIfNotLoggedIn();
+
+            try {
+                await Session.RawAPI.CheckInOuts.load();
+
+                return await Session.RawAPI.CheckInOuts.get();
             }
             catch (caughtError) {
                 throw {

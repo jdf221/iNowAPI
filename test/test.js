@@ -21,6 +21,12 @@ const Puppeteer = require("puppeteer");
         console.log("Classes", classesArray);
 
         console.log(classesArray[2].name + " Assignments", await Session.getClassAssignments(classesArray[2].id));
+
+        console.log("Demographics", await Session.getDemographics());
+        console.log("Attendance", await Session.getAttendance());
+        console.log("Period Attendance", await Session.getPeriodAttendance());
+        console.log("Check Ins and Check Outs", await Session.getCheckInOuts());
+
     }
     catch (error) {
         console.log("Error:", error);
