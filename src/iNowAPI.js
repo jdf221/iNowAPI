@@ -28,6 +28,25 @@ const iNowAPI = function () {
         RawAPI.Cookies = {
             fresh: async function () {
                 await RawAPI.PuppeteerPage.deleteCookie(...(await RawAPI.PuppeteerPage.cookies(RawAPI.Options.PathMap.root)))
+            },
+            setAuthCode: async function (authCode) {
+                await RawAPI.PuppeteerPage.setCookie({
+                    name: "AuthHalcyon",
+                    value: authCode.toString(),
+                    url: RawAPI.Options.PathMap.root
+                });
+            },
+            getAuthCode: async function () {
+                const authCookie = (await RawAPI.PuppeteerPage.cookies(RawAPI.Options.PathMap.root)).find(function (cookie) {
+                    return (cookie.name === "AuthHalcyon")
+                });
+
+                if (authCookie && authCookie.value) {
+                    return authCookie.value;
+                }
+                else {
+                    return undefined;
+                }
             }
         };
 
@@ -430,6 +449,14 @@ const iNowAPI = function () {
                     }
                 }
             }
+        };
+
+        Session.setAuthCode = async function (authCode) {
+            await Session.RawAPI.Cookies.setAuthCode(authCode);
+        };
+
+        Session.getAuthCode = async function () {
+            return await Session.RawAPI.Cookies.getAuthCode();
         };
 
         Session.login = async function (username, password) {
