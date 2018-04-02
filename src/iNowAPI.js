@@ -55,7 +55,7 @@ const iNowAPI = function () {
                 await RawAPI.PuppeteerPage.goto(RawAPI.Options.PathMap.root + RawAPI.Options.PathMap.login);
             },
             submit: async function () {
-                await RawAPI.PuppeteerPage.click("#btnLogin");
+                RawAPI.PuppeteerPage.click("#btnLogin");
 
                 await RawAPI.PuppeteerPage.waitForNavigation();
             },
