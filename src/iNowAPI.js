@@ -549,10 +549,10 @@ const iNowAPI = function () {
 
         Session.getNineWeeks = async function (yearId) {
             try {
+                await Session.RawAPI.NineWeeks.load();
+
                 await Session.RawAPI.Year.set(yearId.toString());
                 await Session.RawAPI.Year.submit();
-
-                await Session.RawAPI.NineWeeks.load();
 
                 return await Session.RawAPI.NineWeeks.get()
             }
