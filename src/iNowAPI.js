@@ -59,14 +59,6 @@ const iNowAPI = function () {
 
                 await RawAPI.PuppeteerPage.waitForNavigation();
             },
-            status: async function () {
-                if (RawAPI.PuppeteerPage.url().includes(RawAPI.Options.PathMap.login)) {
-                    return false;
-                }
-                else {
-                    return true;
-                }
-            },
 
             getUsername: async function () {
                 return await RawAPI.PuppeteerPage.$eval("#txtUsername", function (element) {
@@ -97,6 +89,10 @@ const iNowAPI = function () {
         };
 
         RawAPI.Year = {
+            load: async function () {
+                await RawAPI.PuppeteerPage.goto(RawAPI.Options.PathMap.root + RawAPI.Options.PathMap.grades);
+            },
+
             submit: async function () {
                 let willNavigate = await RawAPI.PuppeteerPage.$eval("#ctl00_ddStudentAcadSession", function (element) {
                     if (element.iNowAPI_hasChanged) {
@@ -428,24 +424,16 @@ const iNowAPI = function () {
 
     iNowAPI.Session = function (RawPuppeteerPage) {
         const Session = this;
-        Session._ = {
-            loginCheckedTimeout: 30 * 1000,
-            lastAutoLoginCheckTimestamp: 0
-        };
 
         Session.RawAPI = new iNowAPI.RawAPI(RawPuppeteerPage);
 
         Session.Util = {
-            throwIfNotLoggedIn: async function () {
-                if ((Session._.lastAutoLoginCheckTimestamp + Session._.loginCheckedTimeout) <= Date.now()) {
-                    Session._.lastAutoLoginCheckTimestamp = Date.now();
-
-                    if (!(await Session.isLoggedIn())) {
-                        throw {
-                            error: true,
-                            code: "notLoggedIn",
-                            message: "You must be logged in to do that"
-                        }
+            throwIfOnLoginPage: function () {
+                if (Session.RawAPI.PuppeteerPage.url().includes(Session.RawAPI.Options.PathMap.login)) {
+                    throw {
+                        error: true,
+                        code: "notLoggedIn",
+                        message: "You must be logged in to do that"
                     }
                 }
             }
@@ -488,7 +476,7 @@ const iNowAPI = function () {
 
                 await Session.RawAPI.Login.submit();
 
-                if (await Session.RawAPI.Login.status()) {
+                if (!Session.RawAPI.PuppeteerPage.url().includes(Session.RawAPI.Options.PathMap.login)) {
                     return true;
                 }
                 else {
@@ -525,7 +513,12 @@ const iNowAPI = function () {
                     await Session.RawAPI.Classes.load();
                 }
 
-                return (await Session.RawAPI.Login.status());
+                if (Session.RawAPI.PuppeteerPage.url().includes(Session.RawAPI.Options.PathMap.login)) {
+                    return false;
+                }
+                else {
+                    return true;
+                }
             } catch (caughtError) {
                 throw {
                     error: true,
@@ -537,12 +530,14 @@ const iNowAPI = function () {
         };
 
         Session.getYears = async function () {
-            await Session.Util.throwIfNotLoggedIn();
-
             try {
+                await Session.RawAPI.Year.load();
+
                 return await Session.RawAPI.Year.get();
             }
             catch (caughtError) {
+                Session.Util.throwIfOnLoginPage();
+
                 throw {
                     error: true,
                     code: "getYearsFailed",
@@ -553,8 +548,6 @@ const iNowAPI = function () {
         };
 
         Session.getNineWeeks = async function (yearId) {
-            await Session.Util.throwIfNotLoggedIn();
-
             try {
                 await Session.RawAPI.Year.set(yearId.toString());
                 await Session.RawAPI.Year.submit();
@@ -564,6 +557,8 @@ const iNowAPI = function () {
                 return await Session.RawAPI.NineWeeks.get()
             }
             catch (caughtError) {
+                await Session.Util.throwIfOnLoginPage();
+
                 throw {
                     error: true,
                     code: "getNineWeeksFailed",
@@ -574,8 +569,6 @@ const iNowAPI = function () {
         };
 
         Session.getClasses = async function (yearId, nineWeeksId) {
-            await Session.Util.throwIfNotLoggedIn();
-
             try {
                 await Session.RawAPI.Classes.load();
 
@@ -591,6 +584,8 @@ const iNowAPI = function () {
                 return await Session.RawAPI.Classes.get()
             }
             catch (caughtError) {
+                await Session.Util.throwIfOnLoginPage();
+
                 throw {
                     error: true,
                     code: "getClassesFailed",
@@ -601,14 +596,14 @@ const iNowAPI = function () {
         };
 
         Session.getClassAssignments = async function (classId) {
-            await Session.Util.throwIfNotLoggedIn();
-
             try {
                 await Session.RawAPI.Assignments.load(classId.toString());
 
                 return await Session.RawAPI.Assignments.get();
             }
             catch (caughtError) {
+                await Session.Util.throwIfOnLoginPage();
+
                 throw {
                     error: true,
                     code: "getClassAssignmentsFailed",
@@ -619,14 +614,14 @@ const iNowAPI = function () {
         };
 
         Session.getDemographics = async function () {
-            await Session.Util.throwIfNotLoggedIn();
-
             try {
                 await Session.RawAPI.Demographic.load();
 
                 return await Session.RawAPI.Demographic.get();
             }
             catch (caughtError) {
+                await Session.Util.throwIfOnLoginPage();
+
                 throw {
                     error: true,
                     code: "getClassAssignmentsFailed",
@@ -636,15 +631,20 @@ const iNowAPI = function () {
             }
         };
 
-        Session.getAttendance = async function () {
-            await Session.Util.throwIfNotLoggedIn();
-
+        Session.getAttendance = async function (yearId) {
             try {
                 await Session.RawAPI.Attendance.load();
+
+                if (typeof yearId !== "undefined") {
+                    await Session.RawAPI.Year.set(yearId.toString());
+                    await Session.RawAPI.Year.submit();
+                }
 
                 return await Session.RawAPI.Attendance.get();
             }
             catch (caughtError) {
+                await Session.Util.throwIfOnLoginPage();
+
                 throw {
                     error: true,
                     code: "getClassAssignmentsFailed",
@@ -654,15 +654,20 @@ const iNowAPI = function () {
             }
         };
 
-        Session.getPeriodAttendance = async function () {
-            await Session.Util.throwIfNotLoggedIn();
-
+        Session.getPeriodAttendance = async function (yearId) {
             try {
                 await Session.RawAPI.PeriodAttendance.load();
+
+                if (typeof yearId !== "undefined") {
+                    await Session.RawAPI.Year.set(yearId.toString());
+                    await Session.RawAPI.Year.submit();
+                }
 
                 return await Session.RawAPI.PeriodAttendance.get();
             }
             catch (caughtError) {
+                await Session.Util.throwIfOnLoginPage();
+
                 throw {
                     error: true,
                     code: "getClassAssignmentsFailed",
@@ -672,15 +677,20 @@ const iNowAPI = function () {
             }
         };
 
-        Session.getCheckInOuts = async function () {
-            await Session.Util.throwIfNotLoggedIn();
-
+        Session.getCheckInOuts = async function (yearId) {
             try {
                 await Session.RawAPI.CheckInOuts.load();
+
+                if (typeof yearId !== "undefined") {
+                    await Session.RawAPI.Year.set(yearId.toString());
+                    await Session.RawAPI.Year.submit();
+                }
 
                 return await Session.RawAPI.CheckInOuts.get();
             }
             catch (caughtError) {
+                await Session.Util.throwIfOnLoginPage();
+
                 throw {
                     error: true,
                     code: "getClassAssignmentsFailed",
