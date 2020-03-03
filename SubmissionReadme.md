@@ -27,9 +27,7 @@ ___
 
 ## Detailed overview of how the API works
 
-There are 2 main sections of this library. The **Raw API** and the **Nice API**. The Raw API is the Puppeteer abstraction. And the Nice API is the actual API we expose and is the one intended to be used.
-
-The Nice API simply wraps the Raw APIs and error handles for you.
+There are 2 main sections of this library. The **Raw API** and the **Session API**. The Raw API is the Puppeteer abstraction. And the Session API is the actual API we expose and is the one intended to be used.
 
 ### Raw API
 
@@ -117,3 +115,23 @@ This object is used to access the assignments from a class. Assignments are list
     comment: string //Teacher comment
 }
 ```
+
+### Session API
+
+The main detail you need to know about the Session API is that it simply exposes simple functions that call the Raw API behind the scenes. It also error handles for you.
+
+Below is a list of all the functions exposed. They all will throw errors on failure.
+
+  * async Session.login(username: string, password: string)
+    - Logs in with the passed credentials
+    - Throws an error if login fails
+  * async isLoggedIn()
+    - Returns true if logged in false if not
+  * async getYears()
+    - Returns the academic years you can select to access.
+  * async getNineWeeks(yearId: string)
+    - Returns the nine weeks from the passed year
+  * async getClasses(yearId: string, nineWeeksId: string)
+    - Returns an array of classes the user is enrolled in
+  * async getClassAssignments(classId: string)
+    - Returns and array of assignments from the class
